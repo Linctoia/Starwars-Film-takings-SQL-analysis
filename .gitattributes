@@ -1,2 +1,729 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+
+/*** Queries Used to Create a Result Table that lists 11 different metrics per filmId.
+
+Those metrics include:
+	* Day and Week number since the film has been released given the Box office day
+    * Film Gross Takings per box office day
+    * Next day Gross Takings given the current Box office day and the % change.
+    * Count of theatres the film is being shown at given Box office day
+    * AVG Gross Takings per theatre
+    * SUM Gross Takings up until the current selected Box office day ***/
+    
+
+#FilmID 1
+SELECT 
+    b.filmid AS FilmID,
+    LEFT(DAYNAME(b.boxofficeday), 3) AS Day,
+    CONCAT(MONTHNAME(b.boxofficeday),
+            ' ',
+            DAYOFMONTH(b.boxofficeday),
+            ', ',
+            YEAR(b.boxofficeday)) AS Date,
+    IF(b.boxofficeday IN (SELECT 
+                MIN(b2.BoxOfficeDay)
+            FROM
+                BoxOffice b2
+            WHERE
+                b2.filmid = 1
+            GROUP BY b2.FilmID),
+        1,
+        ABS(DATEDIFF(b.boxofficeday,
+                        (SELECT 
+                                MIN(b2.BoxOfficeDay)
+                            FROM
+                                BoxOffice b2
+                            WHERE
+                                b2.filmid = 1
+                            GROUP BY b2.FilmID) - 1))) AS Day_Number,
+    CEILING(ROUND(IF(b.boxofficeday IN (SELECT 
+                                MIN(b2.BoxOfficeDay)
+                            FROM
+                                BoxOffice b2
+                            WHERE
+                                b2.filmid = 1
+                            GROUP BY b2.FilmID),
+                        1,
+                        ABS(DATEDIFF(b.boxofficeday,
+                                        (SELECT 
+                                                MIN(b2.BoxOfficeDay)
+                                            FROM
+                                                BoxOffice b2
+                                            WHERE
+                                                b2.filmid = 1
+                                            GROUP BY b2.FilmID) - 1))) / 7,
+                    1)) AS Week_Number,
+    SUM(b.grosstakings) AS Gross_Takings,
+    IFNULL(addition.next_d,"N/A") AS next_day,
+    IFNULL(ROUND((addition.next_d - SUM(b.grosstakings)) / SUM(b.grosstakings) * 100,2),"N/A") AS perc_change,
+    SUM(b.TheaterCount) AS Theatre_Count,
+    ROUND(SUM(b.grosstakings) / SUM(b.TheaterCount),
+            2) AS avg_gross_per_theatre,
+    (SELECT 
+            SUM(addition.gross_to)
+        FROM
+            (SELECT 
+                b4.boxofficeday AS box, SUM(b4.grosstakings) AS gross_to
+            FROM
+                BoxOffice b4
+            WHERE
+                b4.filmid = 1
+            GROUP BY b4.filmid , b4.boxofficeday) addition
+        WHERE
+            addition.box <= b.boxofficeday) AS gross_to_date
+FROM
+    BoxOffice b
+LEFT JOIN (SELECT b4.boxofficeday AS box,
+SUM(b4.grosstakings) AS next_d
+FROM BoxOffice b4
+WHERE b4.filmid = 1
+GROUP BY b4.filmid, b4.boxofficeday) addition 
+ON addition.box = DATE_ADD(b.boxofficeday, INTERVAL 1 day)
+WHERE
+    b.filmid = 1
+GROUP BY b.filmid , Day_Number
+ORDER BY FilmID , Day_Number;
+
+
+
+
+
+
+
+
+
+
+
+
+#FilmID 2
+SELECT 
+    b.filmid AS FilmID,
+    LEFT(DAYNAME(b.boxofficeday), 3) AS Day,
+    CONCAT(MONTHNAME(b.boxofficeday),
+            ' ',
+            DAYOFMONTH(b.boxofficeday),
+            ', ',
+            YEAR(b.boxofficeday)) AS Date,
+    IF(b.boxofficeday IN (SELECT 
+                MIN(b2.BoxOfficeDay)
+            FROM
+                BoxOffice b2
+            WHERE
+                b2.filmid = 2
+            GROUP BY b2.FilmID),
+        1,
+        ABS(DATEDIFF(b.boxofficeday,
+                        (SELECT 
+                                MIN(b2.BoxOfficeDay)
+                            FROM
+                                BoxOffice b2
+                            WHERE
+                                b2.filmid = 2
+                            GROUP BY b2.FilmID) - 1))) AS Day_Number,
+    CEILING(ROUND(IF(b.boxofficeday IN (SELECT 
+                                MIN(b2.BoxOfficeDay)
+                            FROM
+                                BoxOffice b2
+                            WHERE
+                                b2.filmid = 2
+                            GROUP BY b2.FilmID),
+                        1,
+                        ABS(DATEDIFF(b.boxofficeday,
+                                        (SELECT 
+                                                MIN(b2.BoxOfficeDay)
+                                            FROM
+                                                BoxOffice b2
+                                            WHERE
+                                                b2.filmid = 2
+                                            GROUP BY b2.FilmID) - 1))) / 7,
+                    1)) AS Week_Number,
+    SUM(b.grosstakings) AS Gross_Takings,
+    IFNULL(addition.next_d,"N/A") AS next_day,
+    IFNULL(ROUND((addition.next_d - SUM(b.grosstakings)) / SUM(b.grosstakings) * 100,2),"N/A") AS perc_change,
+    SUM(b.TheaterCount) AS Theatre_Count,
+    ROUND(SUM(b.grosstakings) / SUM(b.TheaterCount),
+            2) AS avg_gross_per_theatre,
+    (SELECT 
+            SUM(addition.gross_to)
+        FROM
+            (SELECT 
+                b4.boxofficeday AS box, SUM(b4.grosstakings) AS gross_to
+            FROM
+                BoxOffice b4
+            WHERE
+                b4.filmid = 2
+            GROUP BY b4.filmid , b4.boxofficeday) addition
+        WHERE
+            addition.box <= b.boxofficeday) AS gross_to_date
+FROM
+    BoxOffice b
+LEFT JOIN (SELECT b4.boxofficeday AS box,
+SUM(b4.grosstakings) AS next_d
+FROM BoxOffice b4
+WHERE b4.filmid = 2
+GROUP BY b4.filmid, b4.boxofficeday) addition 
+ON addition.box = DATE_ADD(b.boxofficeday, INTERVAL 1 day)
+WHERE
+    b.filmid = 2
+GROUP BY b.filmid , Day_Number
+ORDER BY FilmID , Day_Number;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#FilmID 3
+
+SELECT 
+    b.filmid AS FilmID,
+    LEFT(DAYNAME(b.boxofficeday), 3) AS Day,
+    CONCAT(MONTHNAME(b.boxofficeday),
+            ' ',
+            DAYOFMONTH(b.boxofficeday),
+            ', ',
+            YEAR(b.boxofficeday)) AS Date,
+    IF(b.boxofficeday IN (SELECT 
+                MIN(b2.BoxOfficeDay)
+            FROM
+                BoxOffice b2
+            WHERE
+                b2.filmid = 3
+            GROUP BY b2.FilmID),
+        1,
+        ABS(DATEDIFF(b.boxofficeday,
+                        (SELECT 
+                                MIN(b2.BoxOfficeDay)
+                            FROM
+                                BoxOffice b2
+                            WHERE
+                                b2.filmid = 3
+                            GROUP BY b2.FilmID) - 1))) AS Day_Number,
+    CEILING(ROUND(IF(b.boxofficeday IN (SELECT 
+                                MIN(b2.BoxOfficeDay)
+                            FROM
+                                BoxOffice b2
+                            WHERE
+                                b2.filmid = 3
+                            GROUP BY b2.FilmID),
+                        1,
+                        ABS(DATEDIFF(b.boxofficeday,
+                                        (SELECT 
+                                                MIN(b2.BoxOfficeDay)
+                                            FROM
+                                                BoxOffice b2
+                                            WHERE
+                                                b2.filmid = 3
+                                            GROUP BY b2.FilmID) - 1))) / 7,
+                    1)) AS Week_Number,
+    SUM(b.grosstakings) AS Gross_Takings,
+    IFNULL(addition.next_d,"N/A") AS next_day,
+    IFNULL(ROUND((addition.next_d - SUM(b.grosstakings)) / SUM(b.grosstakings) * 100,2),"N/A") AS perc_change,
+    SUM(b.TheaterCount) AS Theatre_Count,
+    ROUND(SUM(b.grosstakings) / SUM(b.TheaterCount),
+            2) AS avg_gross_per_theatre,
+    (SELECT 
+            SUM(addition.gross_to)
+        FROM
+            (SELECT 
+                b4.boxofficeday AS box, SUM(b4.grosstakings) AS gross_to
+            FROM
+                BoxOffice b4
+            WHERE
+                b4.filmid = 3
+            GROUP BY b4.filmid , b4.boxofficeday) addition
+        WHERE
+            addition.box <= b.boxofficeday) AS gross_to_date
+FROM
+    BoxOffice b
+LEFT JOIN (SELECT b4.boxofficeday AS box,
+SUM(b4.grosstakings) AS next_d
+FROM BoxOffice b4
+WHERE b4.filmid = 3
+GROUP BY b4.filmid, b4.boxofficeday) addition 
+ON addition.box = DATE_ADD(b.boxofficeday, INTERVAL 1 day)
+WHERE
+    b.filmid = 3
+GROUP BY b.filmid , Day_Number
+ORDER BY FilmID , Day_Number;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#Filmid 4
+
+SELECT 
+    b.filmid AS FilmID,
+    LEFT(DAYNAME(b.boxofficeday), 3) AS Day,
+    CONCAT(MONTHNAME(b.boxofficeday),
+            ' ',
+            DAYOFMONTH(b.boxofficeday),
+            ', ',
+            YEAR(b.boxofficeday)) AS Date,
+    IF(b.boxofficeday IN (SELECT 
+                MIN(b2.BoxOfficeDay)
+            FROM
+                BoxOffice b2
+            WHERE
+                b2.filmid = 4
+            GROUP BY b2.FilmID),
+        1,
+        ABS(DATEDIFF(b.boxofficeday,
+                        (SELECT 
+                                MIN(b2.BoxOfficeDay)
+                            FROM
+                                BoxOffice b2
+                            WHERE
+                                b2.filmid = 4
+                            GROUP BY b2.FilmID) - 1))) AS Day_Number,
+    CEILING(ROUND(IF(b.boxofficeday IN (SELECT 
+                                MIN(b2.BoxOfficeDay)
+                            FROM
+                                BoxOffice b2
+                            WHERE
+                                b2.filmid = 4
+                            GROUP BY b2.FilmID),
+                        1,
+                        ABS(DATEDIFF(b.boxofficeday,
+                                        (SELECT 
+                                                MIN(b2.BoxOfficeDay)
+                                            FROM
+                                                BoxOffice b2
+                                            WHERE
+                                                b2.filmid = 4
+                                            GROUP BY b2.FilmID) - 1))) / 7,
+                    1)) AS Week_Number,
+    SUM(b.grosstakings) AS Gross_Takings,
+    IFNULL(addition.next_d,"N/A") AS next_day,
+    IFNULL(ROUND((addition.next_d - SUM(b.grosstakings)) / SUM(b.grosstakings) * 100,2),"N/A") AS perc_change,
+    SUM(b.TheaterCount) AS Theatre_Count,
+    ROUND(SUM(b.grosstakings) / SUM(b.TheaterCount),
+            2) AS avg_gross_per_theatre,
+    (SELECT 
+            SUM(addition.gross_to)
+        FROM
+            (SELECT 
+                b4.boxofficeday AS box, SUM(b4.grosstakings) AS gross_to
+            FROM
+                BoxOffice b4
+            WHERE
+                b4.filmid = 4
+            GROUP BY b4.filmid , b4.boxofficeday) addition
+        WHERE
+            addition.box <= b.boxofficeday) AS gross_to_date
+FROM
+    BoxOffice b
+LEFT JOIN (SELECT b4.boxofficeday AS box,
+SUM(b4.grosstakings) AS next_d
+FROM BoxOffice b4
+WHERE b4.filmid = 4
+GROUP BY b4.filmid, b4.boxofficeday) addition 
+ON addition.box = DATE_ADD(b.boxofficeday, INTERVAL 1 day)
+WHERE
+    b.filmid = 4
+GROUP BY b.filmid , Day_Number
+ORDER BY FilmID , Day_Number;
+
+
+
+
+
+
+
+
+
+
+#FilmID 5
+
+SELECT 
+    b.filmid AS FilmID,
+    LEFT(DAYNAME(b.boxofficeday), 3) AS Day,
+    CONCAT(MONTHNAME(b.boxofficeday),
+            ' ',
+            DAYOFMONTH(b.boxofficeday),
+            ', ',
+            YEAR(b.boxofficeday)) AS Date,
+    IF(b.boxofficeday IN (SELECT 
+                MIN(b2.BoxOfficeDay)
+            FROM
+                BoxOffice b2
+            WHERE
+                b2.filmid = 5
+            GROUP BY b2.FilmID),
+        1,
+        ABS(DATEDIFF(b.boxofficeday,
+                        (SELECT 
+                                MIN(b2.BoxOfficeDay)
+                            FROM
+                                BoxOffice b2
+                            WHERE
+                                b2.filmid = 5
+                            GROUP BY b2.FilmID) - 1))) AS Day_Number,
+    CEILING(ROUND(IF(b.boxofficeday IN (SELECT 
+                                MIN(b2.BoxOfficeDay)
+                            FROM
+                                BoxOffice b2
+                            WHERE
+                                b2.filmid = 5
+                            GROUP BY b2.FilmID),
+                        1,
+                        ABS(DATEDIFF(b.boxofficeday,
+                                        (SELECT 
+                                                MIN(b2.BoxOfficeDay)
+                                            FROM
+                                                BoxOffice b2
+                                            WHERE
+                                                b2.filmid = 5
+                                            GROUP BY b2.FilmID) - 1))) / 7,
+                    1)) AS Week_Number,
+    SUM(b.grosstakings) AS Gross_Takings,
+    IFNULL(addition.next_d,"N/A") AS next_day,
+    IFNULL(ROUND((addition.next_d - SUM(b.grosstakings)) / SUM(b.grosstakings) * 100,2),"N/A") AS perc_change,
+    SUM(b.TheaterCount) AS Theatre_Count,
+    ROUND(SUM(b.grosstakings) / SUM(b.TheaterCount),
+            2) AS avg_gross_per_theatre,
+    (SELECT 
+            SUM(addition.gross_to)
+        FROM
+            (SELECT 
+                b4.boxofficeday AS box, SUM(b4.grosstakings) AS gross_to
+            FROM
+                BoxOffice b4
+            WHERE
+                b4.filmid = 5
+            GROUP BY b4.filmid , b4.boxofficeday) addition
+        WHERE
+            addition.box <= b.boxofficeday) AS gross_to_date
+FROM
+    BoxOffice b
+LEFT JOIN (SELECT b4.boxofficeday AS box,
+SUM(b4.grosstakings) AS next_d
+FROM BoxOffice b4
+WHERE b4.filmid = 5
+GROUP BY b4.filmid, b4.boxofficeday) addition 
+ON addition.box = DATE_ADD(b.boxofficeday, INTERVAL 1 day)
+WHERE
+    b.filmid = 5
+GROUP BY b.filmid , Day_Number
+ORDER BY FilmID , Day_Number;
+
+
+
+
+
+
+
+
+
+
+
+
+#FilmID 6
+
+
+
+
+SELECT 
+    b.filmid AS FilmID,
+    LEFT(DAYNAME(b.boxofficeday), 3) AS Day,
+    CONCAT(MONTHNAME(b.boxofficeday),
+            ' ',
+            DAYOFMONTH(b.boxofficeday),
+            ', ',
+            YEAR(b.boxofficeday)) AS Date,
+    IF(b.boxofficeday IN (SELECT 
+                MIN(b2.BoxOfficeDay)
+            FROM
+                BoxOffice b2
+            WHERE
+                b2.filmid = 6
+            GROUP BY b2.FilmID),
+        1,
+        ABS(DATEDIFF(b.boxofficeday,
+                        (SELECT 
+                                MIN(b2.BoxOfficeDay)
+                            FROM
+                                BoxOffice b2
+                            WHERE
+                                b2.filmid = 6
+                            GROUP BY b2.FilmID) - 1))) AS Day_Number,
+    CEILING(ROUND(IF(b.boxofficeday IN (SELECT 
+                                MIN(b2.BoxOfficeDay)
+                            FROM
+                                BoxOffice b2
+                            WHERE
+                                b2.filmid = 6
+                            GROUP BY b2.FilmID),
+                        1,
+                        ABS(DATEDIFF(b.boxofficeday,
+                                        (SELECT 
+                                                MIN(b2.BoxOfficeDay)
+                                            FROM
+                                                BoxOffice b2
+                                            WHERE
+                                                b2.filmid = 6
+                                            GROUP BY b2.FilmID) - 1))) / 7,
+                    1)) AS Week_Number,
+    SUM(b.grosstakings) AS Gross_Takings,
+    IFNULL(addition.next_d,"N/A") AS next_day,
+    IFNULL(ROUND((addition.next_d - SUM(b.grosstakings)) / SUM(b.grosstakings) * 100,2),"N/A") AS perc_change,
+    SUM(b.TheaterCount) AS Theatre_Count,
+    ROUND(SUM(b.grosstakings) / SUM(b.TheaterCount),
+            2) AS avg_gross_per_theatre,
+    (SELECT 
+            SUM(addition.gross_to)
+        FROM
+            (SELECT 
+                b4.boxofficeday AS box, SUM(b4.grosstakings) AS gross_to
+            FROM
+                BoxOffice b4
+            WHERE
+                b4.filmid = 6
+            GROUP BY b4.filmid , b4.boxofficeday) addition
+        WHERE
+            addition.box <= b.boxofficeday) AS gross_to_date
+FROM
+    BoxOffice b
+LEFT JOIN (SELECT b4.boxofficeday AS box,
+SUM(b4.grosstakings) AS next_d
+FROM BoxOffice b4
+WHERE b4.filmid = 6
+GROUP BY b4.filmid, b4.boxofficeday) addition 
+ON addition.box = DATE_ADD(b.boxofficeday, INTERVAL 1 day)
+WHERE
+    b.filmid = 6
+GROUP BY b.filmid , Day_Number
+ORDER BY FilmID , Day_Number;
+
+
+
+
+
+
+
+
+
+
+
+#FilmID 7
+
+
+
+
+SELECT 
+    b.filmid AS FilmID,
+    LEFT(DAYNAME(b.boxofficeday), 3) AS Day,
+    CONCAT(MONTHNAME(b.boxofficeday),
+            ' ',
+            DAYOFMONTH(b.boxofficeday),
+            ', ',
+            YEAR(b.boxofficeday)) AS Date,
+    IF(b.boxofficeday IN (SELECT 
+                MIN(b2.BoxOfficeDay)
+            FROM
+                BoxOffice b2
+            WHERE
+                b2.filmid = 7
+            GROUP BY b2.FilmID),
+        1,
+        ABS(DATEDIFF(b.boxofficeday,
+                        (SELECT 
+                                MIN(b2.BoxOfficeDay)
+                            FROM
+                                BoxOffice b2
+                            WHERE
+                                b2.filmid = 7
+                            GROUP BY b2.FilmID) - 1))) AS Day_Number,
+    CEILING(ROUND(IF(b.boxofficeday IN (SELECT 
+                                MIN(b2.BoxOfficeDay)
+                            FROM
+                                BoxOffice b2
+                            WHERE
+                                b2.filmid = 7
+                            GROUP BY b2.FilmID),
+                        1,
+                        ABS(DATEDIFF(b.boxofficeday,
+                                        (SELECT 
+                                                MIN(b2.BoxOfficeDay)
+                                            FROM
+                                                BoxOffice b2
+                                            WHERE
+                                                b2.filmid = 7
+                                            GROUP BY b2.FilmID) - 1))) / 7,
+                    1)) AS Week_Number,
+    SUM(b.grosstakings) AS Gross_Takings,
+    IFNULL(addition.next_d,"N/A") AS next_day,
+    IFNULL(ROUND((addition.next_d - SUM(b.grosstakings)) / SUM(b.grosstakings) * 100,2),"N/A") AS perc_change,
+    SUM(b.TheaterCount) AS Theatre_Count,
+    ROUND(SUM(b.grosstakings) / SUM(b.TheaterCount),
+            2) AS avg_gross_per_theatre,
+    (SELECT 
+            SUM(addition.gross_to)
+        FROM
+            (SELECT 
+                b4.boxofficeday AS box, SUM(b4.grosstakings) AS gross_to
+            FROM
+                BoxOffice b4
+            WHERE
+                b4.filmid = 7
+            GROUP BY b4.filmid , b4.boxofficeday) addition
+        WHERE
+            addition.box <= b.boxofficeday) AS gross_to_date
+FROM
+    BoxOffice b
+LEFT JOIN (SELECT b4.boxofficeday AS box,
+SUM(b4.grosstakings) AS next_d
+FROM BoxOffice b4
+WHERE b4.filmid = 7
+GROUP BY b4.filmid, b4.boxofficeday) addition 
+ON addition.box = DATE_ADD(b.boxofficeday, INTERVAL 1 day)
+WHERE
+    b.filmid = 7
+GROUP BY b.filmid , Day_Number
+ORDER BY FilmID , Day_Number;
+
+
+
+
+
+
+
+
+
+
+
+#FilmID 8
+
+
+
+
+
+SELECT 
+    b.filmid AS FilmID,
+    LEFT(DAYNAME(b.boxofficeday), 3) AS Day,
+    CONCAT(MONTHNAME(b.boxofficeday),
+            ' ',
+            DAYOFMONTH(b.boxofficeday),
+            ', ',
+            YEAR(b.boxofficeday)) AS Date,
+    IF(b.boxofficeday IN (SELECT 
+                MIN(b2.BoxOfficeDay)
+            FROM
+                BoxOffice b2
+            WHERE
+                b2.filmid = 8
+            GROUP BY b2.FilmID),
+        1,
+        ABS(DATEDIFF(b.boxofficeday,
+                        (SELECT 
+                                MIN(b2.BoxOfficeDay)
+                            FROM
+                                BoxOffice b2
+                            WHERE
+                                b2.filmid = 8
+                            GROUP BY b2.FilmID) - 1))) AS Day_Number,
+    CEILING(ROUND(IF(b.boxofficeday IN (SELECT 
+                                MIN(b2.BoxOfficeDay)
+                            FROM
+                                BoxOffice b2
+                            WHERE
+                                b2.filmid = 8
+                            GROUP BY b2.FilmID),
+                        1,
+                        ABS(DATEDIFF(b.boxofficeday,
+                                        (SELECT 
+                                                MIN(b2.BoxOfficeDay)
+                                            FROM
+                                                BoxOffice b2
+                                            WHERE
+                                                b2.filmid = 8
+                                            GROUP BY b2.FilmID) - 1))) / 7,
+                    1)) AS Week_Number,
+    SUM(b.grosstakings) AS Gross_Takings,
+    IFNULL(addition.next_d,"N/A") AS next_day,
+    IFNULL(ROUND((addition.next_d - SUM(b.grosstakings)) / SUM(b.grosstakings) * 100,2),"N/A") AS perc_change,
+    SUM(b.TheaterCount) AS Theatre_Count,
+    ROUND(SUM(b.grosstakings) / SUM(b.TheaterCount),
+            2) AS avg_gross_per_theatre,
+    (SELECT 
+            SUM(addition.gross_to)
+        FROM
+            (SELECT 
+                b4.boxofficeday AS box, SUM(b4.grosstakings) AS gross_to
+            FROM
+                BoxOffice b4
+            WHERE
+                b4.filmid = 8
+            GROUP BY b4.filmid , b4.boxofficeday) addition
+        WHERE
+            addition.box <= b.boxofficeday) AS gross_to_date
+FROM
+    BoxOffice b
+LEFT JOIN (SELECT b4.boxofficeday AS box,
+SUM(b4.grosstakings) AS next_d
+FROM BoxOffice b4
+WHERE b4.filmid = 8
+GROUP BY b4.filmid, b4.boxofficeday) addition 
+ON addition.box = DATE_ADD(b.boxofficeday, INTERVAL 1 day)
+WHERE
+    b.filmid = 8
+GROUP BY b.filmid , Day_Number
+ORDER BY FilmID , Day_Number;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
